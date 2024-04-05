@@ -10,7 +10,7 @@ body {
 
 .outer-box {
   width: 100vw;
-  height: 100vh;
+  height: 150vh;
   background: linear-gradient(to top left, #3ed8ff, #a8f5ff);
 }
 
@@ -107,4 +107,20 @@ button,select{
   border-radius: 4px;
   font-size: 1rem;
   margin-top: 4px;
+}
+
+.result-text {
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  color: #333;
+  line-height: 1.5;
+  margin-bottom: 10px;
+  padding: 10px;
+  background-color: #f7f7f7;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.error{
+  color: red;
 }

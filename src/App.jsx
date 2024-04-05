@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import './App.css';
 
 function App() {
-  const [formData, setFormData] = React.useState({
+  const [formData, setFormData] = useState({
     yourTeam: '',
     oppositionTeam: '',
     over: '',
@@ -11,16 +12,29 @@ function App() {
     tossResult: ''
   });
 
-  const [submitResult, setSubmitResult] = React.useState(null);
-  const [errors, setErrors] = React.useState({});
+  const [submitResult, setSubmitResult] = useState(null);
+  const [errors, setErrors] = useState({});
+  const [teamList, setTeamList] = useState([]);
+
+  useEffect(() => {
+    // Make GET request to fetch team list
+    axios.get('http://localhost:3000/result/teams')
+      .then(response => {
+        // Set the received team list data
+        setTeamList(response.data);
+      })
+      .catch(error => {
+        console.error('Error fetching team list:', error);
+      });
+  }, []); 
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    setFormData((prevFormData) => ({
+    setFormData(prevFormData => ({
       ...prevFormData,
       [name]: value
     }));
-    setErrors((prevErrors) => ({
+    setErrors(prevErrors => ({
       ...prevErrors,
       [name]: '' // Clearing the error when the field is changed
     }));
@@ -31,18 +45,30 @@ function App() {
     const formErrors = validateForm(formData);
     if (Object.keys(formErrors).length === 0) {
       // Form is valid, proceed with submission
-      console.log('Form data:', formData);
-      // Simulate submission result
-      setSubmitResult('Submitted successfully');
-      // Clear the form
-      setFormData({
-        yourTeam: '',
-        oppositionTeam: '',
-        over: '',
-        position: '',
-        runs: '',
-        tossResult: ''
-      });
+      axios.post('http://localhost:3000/result', formData)
+        .then(response => {
+          // Handle successful submission
+          console.log('Form submitted successfully:', response.data);
+          // Set the submission result
+          setSubmitResult(response.data);
+          // Clear the form
+          setFormData({
+            yourTeam: '',
+            oppositionTeam: '',
+            over: '',
+            position: '',
+            runs: '',
+            tossResult: ''
+          });
+          // Clear any previous errors
+          setErrors({});
+        })
+        .catch(error => {
+          // Handle submission error
+          console.error('Error submitting form:', error);
+          // Set the submission error
+          setSubmitResult('Submission failed');
+        });
     } else {
       // Form has errors, display them
       setErrors(formErrors);
@@ -52,9 +78,8 @@ function App() {
   const handleClear = () => {
     // Clear the submit result
     setSubmitResult(null);
-};
+  };
 
-  // Basic validation function
   const validateForm = (data) => {
     const errors = {};
     if (!data.yourTeam.trim()) {
@@ -62,6 +87,9 @@ function App() {
     }
     if (!data.oppositionTeam.trim()) {
       errors.oppositionTeam = 'Opposition Team is required';
+    }
+    if (data.yourTeam.trim() === data.oppositionTeam.trim()) {
+      errors.oppositionTeam = 'Opposition Team should be different from Your Team';
     }
     if (!data.over.trim()) {
       errors.over = 'Overs is required';
@@ -72,12 +100,14 @@ function App() {
     }
     if (!data.position.trim()) {
       errors.position = 'Desired Position is required';
-    }else if (!/^[1-9]\d*$/.test(data.position.trim())) {
+    } else if (!/^[1-9]\d*$/.test(data.position.trim())) {
       errors.position = 'Desired Position should be a positive integer greater than 0';
+    } else if (+data.position > teamList.length) {
+      errors.position = `Desired Position should be less than or equal to ${teamList.length}`;
     }
     if (!data.runs.trim()) {
       errors.runs = 'Runs is required';
-    }  else if (!/^\d+$/.test(data.runs.trim())) {
+    } else if (!/^\d+$/.test(data.runs.trim())) {
       errors.runs = 'Runs should be a positive integer';
     }
     if (!data.tossResult.trim()) {
@@ -93,28 +123,36 @@ function App() {
           <form onSubmit={handleSubmit}>
             <p>
               <label htmlFor="team">Your Team</label>
-              <input
-                type="text"
+              <select
                 id="team"
-                placeholder="Your Team"
                 onChange={handleChange}
                 name="yourTeam"
                 value={formData.yourTeam}
-                
-              />
+              >
+                <option value="">Select Your Team</option>
+                {teamList.map((team, index) => (
+                  <option key={index} value={team}>
+                    {team}
+                  </option>
+                ))}
+              </select>
               {errors.yourTeam && <span className="error">{errors.yourTeam}</span>}
             </p>
             <p>
               <label htmlFor="againstTeam">Opposition Team</label>
-              <input
-                type="text"
+              <select
                 id="againstTeam"
-                placeholder="Opposition Team"
                 onChange={handleChange}
                 name="oppositionTeam"
                 value={formData.oppositionTeam}
-                
-              />
+              >
+                <option value="">Select Opposition Team</option>
+                {teamList.map((team, index) => (
+                  <option key={index} value={team}>
+                    {team}
+                  </option>
+                ))}
+              </select>
               {errors.oppositionTeam && <span className="error">{errors.oppositionTeam}</span>}
             </p>
             <p>
@@ -126,7 +164,6 @@ function App() {
                 onChange={handleChange}
                 name="over"
                 value={formData.over}
-                
               />
               {errors.over && <span className="error">{errors.over}</span>}
             </p>
@@ -139,7 +176,6 @@ function App() {
                 onChange={handleChange}
                 name="position"
                 value={formData.position}
-                
               />
               {errors.position && <span className="error">{errors.position}</span>}
             </p>
@@ -150,7 +186,6 @@ function App() {
                 value={formData.tossResult}
                 onChange={handleChange}
                 name="tossResult"
-                
               >
                 <option value="">Select</option>
                 <option value="batting">Batting</option>
@@ -167,7 +202,6 @@ function App() {
                 onChange={handleChange}
                 name="runs"
                 value={formData.runs}
-                
               />
               {errors.runs && <span className="error">{errors.runs}</span>}
             </p>
@@ -176,16 +210,16 @@ function App() {
             </p>
           </form>
           {submitResult && (
-            <div>
-              <h2>Result</h2>
-              <p>{JSON.stringify(submitResult, null, 2)}</p>
-              <button onClick={handleClear}>Clear</button>
-            </div>
+             <div>
+             <h2>Result</h2>
+             <p className="result-text">{submitResult.msg}</p>
+             <button onClick={handleClear}>Clear</button>
+           </div>
           )}
         </main>
       </div>
-      <div className="circle c1"></div>
-      <div className="circle c2"></div>
+      {/* <div className="circle c1"></div>
+      <div className="circle c2"></div> */}
     </div>
   );
 }
